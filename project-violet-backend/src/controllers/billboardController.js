@@ -1,7 +1,7 @@
 const Billboard = require('../models/Billboard');
 const aiService = require('../services/aiService');
 const { getRecommendations, getSimilarBillboards } = require('../services/recommendationService');
-
+const verificationService = require('../services/verificationService');
 // @desc    Create new billboard
 // @route   POST /api/billboards
 // @access  Private (Admin only)
@@ -17,12 +17,19 @@ exports.createBillboard = async (req, res) => {
       tags
     } = req.body;
 
-    // Parse location if it's a string
+    // Parse incoming JSON strings
     const parsedLocation = typeof location === 'string' ? JSON.parse(location) : location;
     const parsedSpecifications = typeof specifications === 'string' ? JSON.parse(specifications) : specifications;
     const parsedPricing = typeof pricing === 'string' ? JSON.parse(pricing) : pricing;
 
-    // Create billboard
+    // Initialize AI Verification variables to feed into the Trust Engine later
+    let imageVerification = { verified: false, score: 0, message: 'No images uploaded' };
+    let docVerification = { verified: false, score: 0, message: 'No documents uploaded', extractedData: null };
+    let locationVerification = { verified: false, score: 0, message: 'Location unverified' };
+    let images = [];
+    let documents = [];
+
+    // Create base billboard document
     const billboard = await Billboard.create({
       ownerId: req.user.id,
       title,
@@ -34,18 +41,17 @@ exports.createBillboard = async (req, res) => {
       tags: tags ? (typeof tags === 'string' ? JSON.parse(tags) : tags) : []
     });
 
-    // Handle image uploads
+    // 1. Handle image uploads & AI Image Validation
     if (req.files && req.files.billboardImages) {
-      const images = req.files.billboardImages.map((file, index) => ({
+      images = req.files.billboardImages.map((file, index) => ({
         url: file.path,
         isPrimary: index === 0,
         uploadedAt: new Date()
       }));
       billboard.images = images;
 
-      // Verify first image
       if (images.length > 0) {
-        const imageVerification = await aiService.validateBillboardImage(images[0].url);
+        imageVerification = await aiService.validateBillboardImage(images[0].url);
         billboard.verification.details.imageValidation = {
           verified: imageVerification.verified,
           score: imageVerification.score,
@@ -54,18 +60,17 @@ exports.createBillboard = async (req, res) => {
       }
     }
 
-    // Handle document uploads
+    // 2. Handle document uploads & AI OCR Validation
     if (req.files && req.files.documents) {
-      const documents = req.files.documents.map(file => ({
+      documents = req.files.documents.map(file => ({
         type: 'ownership',
         url: file.path,
         uploadedAt: new Date()
       }));
       billboard.documents = documents;
 
-      // Verify first document
       if (documents.length > 0) {
-        const docVerification = await aiService.verifyIDDocument(documents[0].url);
+        docVerification = await aiService.verifyIDDocument(documents[0].url);
         billboard.verification.details.documentVerification = {
           verified: docVerification.verified,
           score: docVerification.score,
@@ -75,19 +80,43 @@ exports.createBillboard = async (req, res) => {
       }
     }
 
-    // Verify location consistency
-    const locationVerification = await aiService.verifyLocationConsistency(
+    // 3. Verify location consistency
+    locationVerification = await aiService.verifyLocationConsistency(
       parsedLocation,
-      billboard.documents[0]?.extractedData
+      docVerification.extractedData
     );
+    
     billboard.verification.details.locationConsistency = {
       verified: locationVerification.verified,
       score: locationVerification.score,
       message: locationVerification.message
     };
 
-    // Calculate verification score
-    billboard.calculateVerificationScore();
+    // 4. Run the WLC Trust Score Engine (Project Violet Phase 2)
+    // Gather the inputs from the AI services
+    const verificationInputs = {
+      // Mocking distance logic: high AI location score implies close distance (<100m)
+      gpsMatchDistance: locationVerification.score > 80 ? 50 : 200, 
+      isLiveCameraCapture: true, // Assuming the frontend OS intent is active
+      multiImageValid: images.length >= 2,
+      imageConsistencySSIM: imageVerification.score > 0 ? (imageVerification.score / 100) : 0,
+      ownershipType: documents.length > 0 ? 'Own' : 'None'
+    };
+
+    // Calculate final score using the decoupled microservice
+    const trustResult = verificationService.calculateTrustScore(verificationInputs);
+
+    // Apply the WLC results to the Mongoose document
+    billboard.verification.score = trustResult.score;
+    
+    if (trustResult.status === 'AUTO_APPROVED' || trustResult.status === 'APPROVED_LOW_TRUST') {
+      billboard.verification.status = 'approved';
+      billboard.verification.verifiedAt = new Date();
+    } else {
+      billboard.verification.status = 'rejected';
+    }
+
+    // Save final state
     await billboard.save();
 
     const populatedBillboard = await Billboard.findById(billboard._id)
@@ -95,11 +124,13 @@ exports.createBillboard = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Billboard created successfully',
+      message: 'Billboard created and verified successfully',
       billboard: populatedBillboard,
       verificationScore: billboard.verification.score,
-      verificationStatus: billboard.verification.status
+      verificationStatus: billboard.verification.status,
+      trustEngineResult: trustResult.status // Optional: Expose the specific WLC tier to the frontend
     });
+
   } catch (error) {
     console.error('Create billboard error:', error);
     res.status(500).json({

@@ -13,6 +13,7 @@ import {
   FiX,
   FiPlusCircle,
   FiBriefcase,
+  FiShoppingCart 
 } from 'react-icons/fi';
 import { useAuthStore } from '@/store/authStore';
 
@@ -40,6 +41,7 @@ const DashboardLayout = () => {
         { path: '', icon: FiHome, label: 'Dashboard', end: true },
         { path: 'bookings', icon: FiCalendar, label: 'My Bookings' },
         { path: 'recommendations', icon: FiGrid, label: 'Recommendations' },
+        { path: 'cart', icon: FiShoppingCart, label: 'Campaign Cart' },
         ...baseItems.slice(1),
       ];
     }

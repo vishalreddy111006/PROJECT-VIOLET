@@ -17,6 +17,11 @@ const upload = require('../middleware/upload');
 // Protected routes - Agent
 router.get('/', protect, authorize('agent'), getJobs);
 router.get('/my/assignments', protect, authorize('agent'), getMyJobs);
+// Agent location
+router.put('/agent/location', protect, authorize('agent'), updateLocation);
+router.get('/nearby', protect, authorize('agent'), getNearbyJobs);
+
+
 router.get('/:id', protect, authorize('agent', 'admin'), getJobById);
 
 // Agent actions
@@ -31,8 +36,5 @@ router.put(
   completeJob
 );
 
-// Agent location
-router.put('/agent/location', protect, authorize('agent'), updateLocation);
-router.post('/nearby', protect, authorize('agent'), getNearbyJobs);
 
 module.exports = router;

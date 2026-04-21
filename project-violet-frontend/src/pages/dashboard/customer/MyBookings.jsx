@@ -1,11 +1,14 @@
 import { FiCalendar, FiMapPin, FiDownload, FiExternalLink, FiClock } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
+import FeedbackScale from '../../../components/common/FeedbackScale';
 
 const MyBookings = () => {
   // Dummy data simulating the customer's booking history
+  // Added billboardId and hasLeftFeedback to track reliability engine triggers
   const bookings = [
     {
       id: 'BKG-88392',
+      billboardId: 'BILL-001',
       billboardName: 'Downtown Times Square LED',
       location: '1540 Broadway, NY',
       startDate: 'Oct 15, 2026',
@@ -16,6 +19,7 @@ const MyBookings = () => {
     },
     {
       id: 'BKG-88393',
+      billboardId: 'BILL-002',
       billboardName: 'Highway 66 Digital Board',
       location: 'Los Angeles, CA',
       startDate: 'Dec 01, 2026',
@@ -26,11 +30,13 @@ const MyBookings = () => {
     },
     {
       id: 'BKG-88104',
+      billboardId: 'BILL-003',
       billboardName: 'Metro Transit Shelter #4',
       location: 'Chicago, IL',
       startDate: 'Jan 01, 2026',
       endDate: 'Jan 15, 2026',
       status: 'Completed',
+      hasLeftFeedback: false, // Tracked to prevent duplicate scoring
       amount: '15,000',
       image: 'https://images.unsplash.com/photo-1555436169-20e9068b5a03?auto=format&fit=crop&q=80&w=200'
     }
@@ -49,6 +55,26 @@ const MyBookings = () => {
     }
   };
 
+  const handleFeedbackSubmit = async (bookingId, billboardId, rating, comment) => {
+    try {
+      const payload = {
+        targetType: 'Billboard',
+        targetId: billboardId,
+        contextModel: 'BookingRequest',
+        contextId: bookingId,
+        rating: rating, // 1-10 scale as per Reliability Engine LLD
+        comment: comment
+      };
+      
+      // await reviewService.submitFeedback(payload);
+      console.log("Submitting Feedback to Reliability Engine:", payload);
+      alert("Thanks for your feedback! The billboard's Trust Score has been updated.");
+      
+    } catch (error) {
+      console.error("Feedback failed", error);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in max-w-6xl mx-auto">
       {/* Header */}
@@ -57,7 +83,6 @@ const MyBookings = () => {
           <h1 className="text-3xl font-bold text-dark-900">My Bookings</h1>
           <p className="text-dark-500 mt-1">View and manage your billboard advertising history</p>
         </div>
-        {/* Simple Tab Filter (Visual only for now) */}
         <div className="bg-white p-1 rounded-xl border border-dark-200 inline-flex">
           <button className="px-4 py-2 rounded-lg bg-primary-50 text-primary-700 font-medium text-sm transition-colors">All</button>
           <button className="px-4 py-2 rounded-lg text-dark-600 hover:bg-dark-50 font-medium text-sm transition-colors">Active</button>
@@ -68,57 +93,72 @@ const MyBookings = () => {
       {/* Bookings List */}
       <div className="space-y-4">
         {bookings.map((booking) => (
-          <div key={booking.id} className="card p-4 sm:p-6 flex flex-col xl:flex-row gap-6 items-start xl:items-center hover:border-primary-200 transition-colors">
-            
-            {/* Image & Basic Info */}
-            <div className="flex items-center gap-4 w-full xl:w-2/5">
-              <img 
-                src={booking.image} 
-                alt={booking.billboardName} 
-                className="w-24 h-24 rounded-xl object-cover shrink-0"
-              />
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-xs font-bold text-dark-400 uppercase tracking-wider">{booking.id}</p>
-                </div>
-                <h3 className="font-bold text-lg text-dark-900 truncate">{booking.billboardName}</h3>
-                <div className="flex items-center gap-1 text-sm text-dark-500 mt-1">
-                  <FiMapPin className="w-4 h-4 shrink-0 text-primary-600" />
-                  <span className="truncate">{booking.location}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Dates */}
-            <div className="flex-1 flex flex-col sm:flex-row gap-6 w-full xl:px-6 xl:border-x border-dark-100">
-              <div className="flex-1">
-                <p className="text-xs text-dark-500 font-medium uppercase tracking-wider mb-1">Campaign Duration</p>
-                <div className="flex items-center gap-2 text-dark-900 font-medium">
-                  <FiCalendar className="w-4 h-4 text-primary-600" />
-                  <span>{booking.startDate} <span className="text-dark-400 mx-1">→</span> {booking.endDate}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Status, Price, and Actions */}
-            <div className="flex flex-row xl:flex-col items-center xl:items-end justify-between w-full xl:w-1/4 gap-4">
-              <div className="text-left xl:text-right flex flex-col items-start xl:items-end gap-2 w-full xl:w-auto">
-                <div className="flex justify-between w-full xl:w-auto items-center gap-4">
-                  {getStatusBadge(booking.status)}
-                  <p className="font-bold text-xl text-dark-900">₹{booking.amount}</p>
-                </div>
-              </div>
+          <div key={booking.id} className="card p-4 sm:p-6 bg-white border border-dark-200 rounded-2xl hover:border-primary-200 transition-colors shadow-sm">
+            <div className="flex flex-col xl:flex-row gap-6 items-start xl:items-center">
               
-              <div className="flex items-center gap-2 w-full xl:w-auto mt-2 xl:mt-0">
-                <button className="flex-1 xl:flex-none btn btn-ghost text-primary-600 hover:bg-primary-50 px-3 py-2 text-sm flex items-center justify-center gap-2">
-                  <FiDownload className="w-4 h-4" /> Invoice
-                </button>
-                <Link to="/billboards/1" className="flex-1 xl:flex-none btn btn-outline px-3 py-2 text-sm flex items-center justify-center gap-2">
-                  <FiExternalLink className="w-4 h-4" /> View Ad
-                </Link>
+              {/* Image & Basic Info */}
+              <div className="flex items-center gap-4 w-full xl:w-2/5">
+                <img 
+                  src={booking.image} 
+                  alt={booking.billboardName} 
+                  className="w-24 h-24 rounded-xl object-cover shrink-0"
+                />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-xs font-bold text-dark-400 uppercase tracking-wider">{booking.id}</p>
+                  </div>
+                  <h3 className="font-bold text-lg text-dark-900 truncate">{booking.billboardName}</h3>
+                  <div className="flex items-center gap-1 text-sm text-dark-500 mt-1">
+                    <FiMapPin className="w-4 h-4 shrink-0 text-primary-600" />
+                    <span className="truncate">{booking.location}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dates */}
+              <div className="flex-1 flex flex-col sm:flex-row gap-6 w-full xl:px-6 xl:border-x border-dark-100">
+                <div className="flex-1">
+                  <p className="text-xs text-dark-500 font-medium uppercase tracking-wider mb-1">Campaign Duration</p>
+                  <div className="flex items-center gap-2 text-dark-900 font-medium">
+                    <FiCalendar className="w-4 h-4 text-primary-600" />
+                    <span>{booking.startDate} <span className="text-dark-400 mx-1">→</span> {booking.endDate}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status, Price, and Actions */}
+              <div className="flex flex-row xl:flex-col items-center xl:items-end justify-between w-full xl:w-1/4 gap-4">
+                <div className="text-left xl:text-right flex flex-col items-start xl:items-end gap-2 w-full xl:w-auto">
+                  <div className="flex justify-between w-full xl:w-auto items-center gap-4">
+                    {getStatusBadge(booking.status)}
+                    <p className="font-bold text-xl text-dark-900">₹{booking.amount}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2 w-full xl:w-auto mt-2 xl:mt-0">
+                  <button className="flex-1 xl:flex-none btn btn-ghost text-primary-600 hover:bg-primary-50 px-3 py-2 text-sm flex items-center justify-center gap-2">
+                    <FiDownload className="w-4 h-4" /> Invoice
+                  </button>
+                  <Link to={`/billboards/${booking.billboardId}`} className="flex-1 xl:flex-none btn btn-outline px-3 py-2 text-sm flex items-center justify-center gap-2">
+                    <FiExternalLink className="w-4 h-4" /> View Ad
+                  </Link>
+                </div>
               </div>
             </div>
 
+            {/* Post-Verification Feedback Loop - Nested within the specific card */}
+            {booking.status === 'Completed' && !booking.hasLeftFeedback && (
+              <div className="mt-6 pt-6 border-t border-dashed border-dark-200 animate-fade-in">
+                <h4 className="font-bold text-dark-900 mb-4 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-primary-600 rounded-full"></span>
+                  Rate your experience with this billboard
+                </h4>
+                <FeedbackScale
+                  targetName={booking.billboardName}
+                  onSubmit={(rating, comment) => handleFeedbackSubmit(booking.id, booking.billboardId, rating, comment)} 
+                />
+              </div>
+            )}
           </div>
         ))}
       </div>

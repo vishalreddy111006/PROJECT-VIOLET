@@ -106,6 +106,18 @@ const userSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  reliabilityScore: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: function() {
+      return this.role === 'agent' ? 75 : undefined; 
+    }
+  },
+  completedJobs: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true

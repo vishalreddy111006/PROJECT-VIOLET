@@ -68,12 +68,8 @@ export const jobService = {
   },
 
   // Get nearby jobs
-  getNearbyJobs: async (latitude, longitude, radius) => {
-    const response = await api.post('/api/jobs/nearby', {
-      latitude,
-      longitude,
-      radius,
-    });
-    return response.data;
-  },
+ getNearbyJobs: async (latitude, longitude) => {
+  const response = await api.get(`/api/jobs/nearby?lat=${latitude}&lng=${longitude}`);
+  return response.data.jobs; 
+}
 };

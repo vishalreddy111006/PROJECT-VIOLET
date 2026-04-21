@@ -36,6 +36,7 @@ import JobDetails from './pages/dashboard/agent/JobDetails';
 
 import Profile from './pages/dashboard/Profile';
 import Settings from './pages/dashboard/Settings';
+import CampaignCart from './pages/dashboard/customer/CampaignCart';
 
 // Create Query Client
 const queryClient = new QueryClient({
@@ -104,6 +105,7 @@ function App() {
             <Route path="recommendations" element={<Recommendations />} />
             <Route path="profile" element={<Profile />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="cart" element={<CampaignCart />} />
           </Route>
 
           {/* Admin Dashboard */}
@@ -120,6 +122,10 @@ function App() {
             <Route path="billboards/create" element={<CreateBillboard />} />
             <Route path="billboards/edit/:id" element={<EditBillboard />} />
             <Route path="booking-requests" element={<BookingRequests />} />
+            
+            {/* Added Admin Verification Route Here */}
+            <Route path="verify" element={<AdminVerification />} />
+            
             <Route path="profile" element={<Profile />} />
             <Route path="settings" element={<Settings />} />
           </Route>

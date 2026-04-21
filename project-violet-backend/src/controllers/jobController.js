@@ -2,7 +2,7 @@ const Job = require('../models/Job');
 const User = require('../models/User');
 const BookingRequest = require('../models/BookingRequest');
 const geolib = require('geolib');
-
+const reliabilityService = require('../services/reliabilityService');
 // @desc    Get all jobs (for agents - nearby jobs)
 // @route   GET /api/jobs
 // @access  Private (Agent)
@@ -342,10 +342,27 @@ exports.completeJob = async (req, res) => {
     job.status = 'completed';
     await job.save();
 
-    // Update agent's completed jobs count
+    // 1. Update agent's completed jobs count
     const agent = await User.findById(req.user.id);
-    agent.completedJobs += 1;
+    agent.completedJobs = (agent.completedJobs || 0) + 1; // Safely increment
     await agent.save();
+
+    // ==========================================
+    // 2. TRIGGER PROJECT VIOLET RELIABILITY ENGINE
+    // ==========================================
+    
+    // Boost Agent's reliability for finishing the job
+    await reliabilityService.updateAgentReliability(
+      req.user.id, 
+      'JOB_COMPLETED_ON_TIME'
+    );
+
+    // Boost Billboard's reliability because an agent just physically verified it
+    await reliabilityService.updateBillboardReliability(
+      job.billboardId, 
+      'AGENT_MAINTENANCE_VERIFIED'
+    );
+    // ==========================================
 
     // Update booking request status
     await BookingRequest.findByIdAndUpdate(job.bookingRequestId, {
@@ -354,11 +371,11 @@ exports.completeJob = async (req, res) => {
 
     const updatedJob = await Job.findById(job._id)
       .populate('billboardId', 'title location')
-      .populate('assignedAgentId', 'name phone rating completedJobs');
+      .populate('assignedAgentId', 'name phone rating completedJobs reliabilityScore');
 
     res.status(200).json({
       success: true,
-      message: 'Job completed successfully',
+      message: 'Job completed successfully. Trust scores updated.',
       job: updatedJob
     });
   } catch (error) {
@@ -415,42 +432,53 @@ exports.updateLocation = async (req, res) => {
 };
 
 // @desc    Get nearby jobs (based on agent's current location)
-// @route   POST /api/jobs/nearby
+// @route   GET /api/jobs/nearby
 // @access  Private (Agent)
 exports.getNearbyJobs = async (req, res) => {
   try {
-    const { latitude, longitude, radius = 20000 } = req.body;
+    const lat = req.query.lat;
+    const lng = req.query.lng;
+    const radius = req.query.radius || 6000; // 6km 
 
-    if (!latitude || !longitude) {
+    if (!lat || !lng) {
       return res.status(400).json({
         success: false,
         message: 'Please provide latitude and longitude'
       });
     }
 
-    const jobs = await Job.find({
-      status: 'pending',
-      assignedAgentId: null,
-      location: {
-        $near: {
-          $geometry: {
-            type: 'Point',
-            coordinates: [parseFloat(longitude), parseFloat(latitude)]
-          },
-          $maxDistance: parseInt(radius)
+    const nearbyJobs = await Job.aggregate([
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: [parseFloat(lng), parseFloat(lat)] },
+          distanceField: "distance",
+          maxDistance: parseInt(radius), 
+          spherical: true,
+          query: { status: 'pending' }
         }
-      }
-    })
-    .populate('billboardId', 'title location images')
-    .populate('customerId', 'name phone')
-    .sort({ priority: -1, scheduledDate: 1 })
-    .limit(20)
-    .lean();
+      },
+      {
+        $lookup: {
+          from: 'billboards', 
+          localField: 'billboardId',
+          foreignField: '_id',
+          as: 'billboardId' 
+        }
+      },
+      {
+        $unwind: {
+          path: '$billboardId',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      { $sort: { distance: 1 } },
+      { $limit: 20 }
+    ]);
 
     res.status(200).json({
       success: true,
-      count: jobs.length,
-      jobs
+      count: nearbyJobs.length, 
+      jobs: nearbyJobs         
     });
   } catch (error) {
     console.error('Get nearby jobs error:', error);
