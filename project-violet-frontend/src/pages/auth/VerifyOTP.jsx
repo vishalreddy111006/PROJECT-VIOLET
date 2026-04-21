@@ -74,8 +74,22 @@ const VerifyOTP = () => {
       
       toast.success('Identity verified!');
       
-      // Redirect to the new Onboarding flow
-      navigate('/onboarding');
+      // ==========================================
+      // NEW LOGIC: Role-Based Routing
+      // ==========================================
+      const userRole = response.user.role;
+      
+      if (userRole === 'admin') {
+        // Admins must complete document KYC
+        navigate('/onboarding');
+      } else if (userRole === 'agent') {
+        // Agents bypass KYC and go straight to work
+        navigate('/dashboard/agent/nearby');
+      } else {
+        // Customers bypass KYC and go straight to booking
+        navigate('/dashboard/customer'); // Adjust if your customer home is a different path
+      }
+      // ==========================================
       
     } catch (error) {
       toast.error(error.response?.data?.message || 'Invalid OTP. Please try again.');

@@ -88,6 +88,19 @@ exports.verifyOTP = async (req, res) => {
       verified: true,
       score: 25
     };
+
+    // ========================================================
+    // NEW LOGIC: Role-Based Status Assignment
+    // ========================================================
+    if (user.role === 'admin') {
+      // Admins require physical document verification next
+      user.status = 'pending';
+    } else {
+      // Customers and Agents bypass document KYC
+      user.status = 'active';
+      user.isVerified = true; 
+    }
+    // ========================================================
     
     user.calculateVerificationScore();
     await user.save();
@@ -105,6 +118,7 @@ exports.verifyOTP = async (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        status: user.status, // Sent to frontend for routing
         isVerified: user.isVerified,
         verificationScore: user.verificationScore
       }

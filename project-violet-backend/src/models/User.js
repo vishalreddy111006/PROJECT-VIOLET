@@ -36,6 +36,12 @@ const userSchema = new mongoose.Schema({
     enum: ['customer', 'admin', 'agent'],
     default: 'customer'
   },
+  // 🟢 NEW: General Account Status (Used for routing after OTP)
+  status: {
+    type: String,
+    enum: ['pending', 'active', 'suspended'],
+    default: 'pending' 
+  },
   isVerified: {
     type: Boolean,
     default: false
@@ -46,7 +52,8 @@ const userSchema = new mongoose.Schema({
     min: 0,
     max: 100
   },
-  // Admin specific fields
+  
+  // --- Admin Specific Fields ---
   idDocument: {
     type: String, // Path to uploaded ID
   },
@@ -71,7 +78,8 @@ const userSchema = new mongoose.Schema({
     faceMatch: { verified: Boolean, score: Number },
     database: { verified: Boolean, score: Number }
   },
-  // Agent specific fields
+
+  // --- Agent Specific Fields ---
   location: {
     type: {
       type: String,
@@ -97,16 +105,6 @@ const userSchema = new mongoose.Schema({
     min: 0,
     max: 5
   },
-  // Common fields
-  profileImage: String,
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  },
   reliabilityScore: {
     type: Number,
     min: 0,
@@ -115,9 +113,16 @@ const userSchema = new mongoose.Schema({
       return this.role === 'agent' ? 75 : undefined; 
     }
   },
-  completedJobs: {
-    type: Number,
-    default: 0
+
+  // --- Common Fields ---
+  profileImage: String,
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
 }, {
   timestamps: true
