@@ -41,7 +41,7 @@ const Recommendations = () => {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <FiZap className="text-violet-400 w-5 h-5" />
-              <span className="text-violet-400 font-bold tracking-wider text-sm">VIOLET AI ENGINE</span>
+              <span className="text-violet-400 font-bold tracking-wider text-sm">VIOLET SMART ENGINE</span>
             </div>
             <h1 className="text-3xl font-bold mb-2">Smart Match Results</h1>
             <p className="text-gray-300 max-w-xl">
@@ -52,7 +52,7 @@ const Recommendations = () => {
           <div className="flex gap-4 text-sm font-medium">
             <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/10">
               <p className="text-gray-400 text-xs mb-1">Targeting</p>
-              <div className="flex items-center gap-2"><FiTarget /> AI Matched</div>
+              <div className="flex items-center gap-2"><FiTarget /> Matched</div>
             </div>
           </div>
         </div>
@@ -75,15 +75,30 @@ const Recommendations = () => {
                 />
                 <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-gray-900/80 to-transparent"></div>
                 
-                <div className="absolute top-4 right-4">
+                {/* TOP RIGHT BADGES */}
+                <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
+                  
+                  {/* 1. Overall Match Score Badge */}
                   <span className="bg-white/90 backdrop-blur-md text-gray-900 px-3 py-1.5 rounded-lg font-bold shadow-lg flex items-center gap-2 text-sm">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    {board.matchScore || '95%'} Match
+                    {board.recommendationScore || 0}% Smart Match
                   </span>
+
+                  {/* 2. NEW: Visibility Score Badge */}
+                  <span className="bg-violet-600/90 backdrop-blur-md text-white px-3 py-1.5 rounded-lg font-bold shadow-lg flex items-center gap-2 text-sm">
+                    <FiEye className="w-4 h-4" />
+                    {board.visibility?.score || 0}/100 Visibility
+                  </span>
+
                 </div>
 
                 <div className="absolute bottom-4 left-4 text-white">
                   <h3 className="text-xl font-bold">{board.title}</h3>
+                  {/* Displaying the Traffic Density String */}
+                  <p className="text-sm font-medium text-violet-300 capitalize flex items-center gap-1 mt-1">
+                    <FiUsers className="w-3 h-3" />
+                    {board.visibility?.trafficDensity || 'medium'} Traffic Area
+                  </p>
                 </div>
               </div>
 

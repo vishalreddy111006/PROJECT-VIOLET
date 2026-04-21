@@ -201,6 +201,7 @@ exports.acceptJob = async (req, res) => {
 // @desc    Reject job (Agent)
 // @route   PUT /api/jobs/:id/reject
 // @access  Private (Agent)
+
 exports.rejectJob = async (req, res) => {
   try {
     const { reason } = req.body;
@@ -488,3 +489,4 @@ exports.getNearbyJobs = async (req, res) => {
     });
   }
 };
+

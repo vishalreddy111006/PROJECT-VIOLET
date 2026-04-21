@@ -7,6 +7,9 @@ const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
 
+// 🟢 NEW: Import the background cron job for Visibility Scores
+const startVisibilityCronJob = require('./utils/visibilityUpdater');
+
 // Load environment variables
 dotenv.config();
 
@@ -93,13 +96,17 @@ app.use((req, res) => {
 // Error handler (must be last)
 app.use(errorHandler);
 
+// 🟢 NEW: Initialize the background tasks before starting the server
+startVisibilityCronJob();
+console.log('🔄 Visibility Score Engine initialized (Runs every 3 days)');
+
 // Start server
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`
     ╔═══════════════════════════════════════════════════╗
     ║                                                   ║
-    ║        🚀 PROJECT VIOLET API SERVER 🚀           ║
+    ║        🚀 PROJECT VIOLET API SERVER 🚀            ║
     ║                                                   ║
     ║  Server running in ${process.env.NODE_ENV || 'development'} mode                ║
     ║  Port: ${PORT}                                       ║

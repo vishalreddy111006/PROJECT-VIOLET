@@ -21,6 +21,7 @@ router.get('/:id/similar', getSimilar);
 router.post('/recommendations', getRecommendations);
 router.post('/search/nearby', searchNearby);
 
+router.post('/', protect, authorize('admin'), upload.array('images', 5), createBillboard);
 // Protected routes - Admin only
 router.post(
   '/',

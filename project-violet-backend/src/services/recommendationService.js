@@ -21,7 +21,7 @@ const getRecommendations = async (preferences) => {
       'availability.isAvailable': true,
       status: 'active'
     };
-
+         
     // Add type filter
     if (billboardType) {
       query['specifications.type'] = billboardType;
