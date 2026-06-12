@@ -1,6 +1,6 @@
 # Project Violet - Backend API
 
-AI-Assisted Digital Billboard Booking & Field Agent Coordination Platform
+Physical and Digital Billboard Booking & Field Agent Coordination Platform
 
 ## 📋 Table of Contents
 
